@@ -9,8 +9,6 @@
 
 # android makefiles
 GypAndroid.mk
-support/*.target.mk
-*.target.mk
 GypAndroid.mk
 
 # gyp
