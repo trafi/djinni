@@ -28,9 +28,6 @@ LOCAL_SRC_FILES := \
 
 # Flags passed to both C and C++ files.
 MY_CFLAGS_Debug := \
-	-Wall \
-	-Wextra \
-	-Werror \
 	-fvisibility=hidden \
 	-g \
 	-O0
@@ -46,9 +43,6 @@ LOCAL_C_INCLUDES_Debug := \
 
 # Flags passed to only C++ (and not C) files.
 LOCAL_CPPFLAGS_Debug := \
-	-Wall \
-	-Wextra \
-	-Werror \
 	-fvisibility=hidden \
 	-std=c++1y \
 	-fexceptions \
@@ -57,9 +51,6 @@ LOCAL_CPPFLAGS_Debug := \
 
 # Flags passed to both C and C++ files.
 MY_CFLAGS_Release := \
-	-Wall \
-	-Wextra \
-	-Werror \
 	-fvisibility=hidden \
 	-Os \
 	-fomit-frame-pointer \
@@ -77,9 +68,6 @@ LOCAL_C_INCLUDES_Release := \
 
 # Flags passed to only C++ (and not C) files.
 LOCAL_CPPFLAGS_Release := \
-	-Wall \
-	-Wextra \
-	-Werror \
 	-fvisibility=hidden \
 	-std=c++1y \
 	-fexceptions \
