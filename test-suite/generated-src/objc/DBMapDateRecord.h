@@ -3,11 +3,10 @@
 
 #import <Foundation/Foundation.h>
 
-
 @interface DBMapDateRecord : NSObject
-- (id)initWithMapDateRecord:(DBMapDateRecord *)mapDateRecord;
-- (id)initWithDatesById:(NSDictionary *)datesById;
+- (nonnull instancetype)initWithDatesById:(nonnull NSDictionary *)datesById;
++ (nonnull instancetype)mapDateRecordWithDatesById:(nonnull NSDictionary *)datesById;
 
-@property (nonatomic, readonly) NSDictionary *datesById;
+@property (nonatomic, readonly, nonnull) NSDictionary * datesById;
 
 @end

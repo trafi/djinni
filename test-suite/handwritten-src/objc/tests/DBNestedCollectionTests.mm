@@ -4,7 +4,7 @@
 #include "nested_collection.hpp"
 
 static NestedCollection cppNestedCollection { { {u8"String1", u8"String2"}, {u8"StringA", u8"StringB"} } };
-static DBNestedCollection *objcNestedCollection = [[DBNestedCollection alloc] initWithSetList:@[
+static DBNestedCollection *objcNestedCollection = [DBNestedCollection nestedCollectionWithSetList:@[
             [NSSet setWithArray:@[ @"String1", @"String2" ]],
             [NSSet setWithArray:@[ @"StringA", @"StringB" ]],
         ]];
@@ -27,13 +27,13 @@ static DBNestedCollection *objcNestedCollection = [[DBNestedCollection alloc] in
 
 - (void)testCppNestedCollectionToObjc
 {
-    DBNestedCollection *converted = [[DBNestedCollection alloc] initWithCppNestedCollection:cppNestedCollection];
+    DBNestedCollection *converted = djinni_generated::NestedCollection::fromCpp(cppNestedCollection);
     XCTAssertEqualObjects(objcNestedCollection.setList, converted.setList, @"List expected to be equivalent");
 }
 
 - (void)testObjcNestedCollectionToCpp
 {
-    NestedCollection converted = [objcNestedCollection cppNestedCollection];
+    NestedCollection converted = djinni_generated::NestedCollection::toCpp(objcNestedCollection);
     XCTAssertEqual(cppNestedCollection.set_list, converted.set_list, @"List expected to be equivalent");
 }
 

@@ -3,11 +3,10 @@
 
 #import <Foundation/Foundation.h>
 
-
 @interface TXSItemList : NSObject
-- (id)initWithItemList:(TXSItemList *)itemList;
-- (id)initWithItems:(NSArray *)items;
+- (nonnull instancetype)initWithItems:(nonnull NSArray *)items;
++ (nonnull instancetype)itemListWithItems:(nonnull NSArray *)items;
 
-@property (nonatomic, readonly) NSArray *items;
+@property (nonatomic, readonly, nonnull) NSArray * items;
 
 @end
