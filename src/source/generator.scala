@@ -44,6 +44,9 @@ package object generatorTools {
                    cppOptionalTemplate: String,
                    cppOptionalHeader: String,
                    cppEnumHashWorkaround: Boolean,
+                   cppNnHeader: Option[String],
+                   cppNnType: Option[String],
+                   cppNnCheckExpression: Option[String],
                    jniOutFolder: Option[File],
                    jniHeaderOutFolder: Option[File],
                    jniIncludePrefix: String,
@@ -330,6 +333,8 @@ abstract class Generator(spec: Spec)
       case Some("") => "::" + t
       case Some(s) => "::" + s + "::" + t
     }
+
+  def withCppNs(t: String) = withNs(Some(spec.cppNamespace), t)
 
   def writeAlignedCall(w: IndentWriter, call: String, params: Seq[Field], delim: String, end: String, f: Field => String): IndentWriter = {
     w.w(call)

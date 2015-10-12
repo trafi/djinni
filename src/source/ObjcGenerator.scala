@@ -139,7 +139,6 @@ class ObjcGenerator(spec: Spec) extends Generator(spec) {
     }
 
     writeObjcFile(marshal.headerName(ident), origin, refs.header, w => {
-      writeDoc(w, doc)
       for (c <- i.consts) {
         writeDoc(w, c.doc)
         w.w(s"extern ")
@@ -147,6 +146,7 @@ class ObjcGenerator(spec: Spec) extends Generator(spec) {
         w.wl(s";")
       }
       w.wl
+      writeDoc(w, doc)
       if (i.ext.objc) w.wl(s"@protocol $self") else w.wl(s"@interface $self : NSObject")
       for (m <- i.methods) {
         w.wl
@@ -385,6 +385,38 @@ class ObjcGenerator(spec: Spec) extends Generator(spec) {
         }
         w.wl
       }
+
+      w.wl("- (NSString *)description")
+      w.braced {
+        w.w(s"return ").nestedN(2) {
+          w.w("[NSString stringWithFormat:@\"<%@ %p")
+
+          for (f <- r.fields) w.w(s" ${idObjc.field(f.ident)}:%@")
+          w.w(">\", self.class, self")
+
+          for (f <- r.fields) {
+            w.w(", ")
+            f.ty.resolved.base match {
+              case MOptional => w.w(s"self.${idObjc.field(f.ident)}")
+              case t: MPrimitive => w.w(s"@(self.${idObjc.field(f.ident)})")
+              case df: MDef => df.defType match {
+                case DEnum => w.w(s"@(self.${idObjc.field(f.ident)})")
+                case _ => w.w(s"self.${idObjc.field(f.ident)}")
+              }
+              case e: MExtern =>
+                if (e.objc.pointer) {
+                  w.w(s"self.${idObjc.field(f.ident)}")
+                } else {
+                  w.w(s"@(self.${idObjc.field(f.ident)})")
+                }
+              case _ => w.w(s"self.${idObjc.field(f.ident)}")
+            }
+          }
+        }
+        w.wl("];")
+      }
+      w.wl
+
       w.wl("@end")
     })
   }
