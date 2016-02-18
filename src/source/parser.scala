@@ -39,13 +39,18 @@ private object IdlParser extends RegexParsers {
 
   def idlFile(origin: String): Parser[IdlFile] = rep(importFile) ~ rep(typeDecl(origin)) ^^ { case imp~types => IdlFile(imp, types) }
 
-  def importFile: Parser[FileRef] = ("@" ~> directive) ~ ("\"" ~> filePath <~ "\"") ^^ {
-    case "import" ~ x =>
-      val newPath = fileStack.top.getParent() + "/" + x
-      new IdlFileRef(new File(newPath))
-    case "extern" ~ x =>
-      val newPath = fileStack.top.getParent() + "/" + x
-      new ExternFileRef(new File(newPath))
+  def importFile: Parser[FileRef] = {
+    
+	def fileParent:String = if (fileStack.top.getParent() != null) return fileStack.top.getParent() + "/" else return ""
+
+    ("@" ~> directive) ~ ("\"" ~> filePath <~ "\"") ^^ {
+      case "import" ~ x =>
+        val newPath = fileParent + x
+        new IdlFileRef(new File(newPath))
+      case "extern" ~ x =>
+        val newPath = fileParent + x
+        new ExternFileRef(new File(newPath))
+    }
   }
   def filePath = "[^\"]*".r
 
@@ -58,13 +63,14 @@ private object IdlParser extends RegexParsers {
   }
 
   def ext(default: Ext) = (rep1("+" ~> ident) >> checkExts) | success(default)
-  def extRecord = ext(Ext(false, false, false))
-  def extInterface = ext(Ext(true, true, true))
+  def extRecord = ext(Ext(false, false, false, false))
+  def extInterface = ext(Ext(true, true, true, true))
 
   def checkExts(parts: List[Ident]): Parser[Ext] = {
     var foundCpp = false
     var foundJava = false
     var foundObjc = false
+    var foundPy = false
 
     for (part <- parts)
       part.name match {
@@ -80,9 +86,13 @@ private object IdlParser extends RegexParsers {
           if (foundObjc) return err("Found multiple \"o\" modifiers.")
           foundObjc = true
         }
+        case "p" => {
+          if (foundPy) return err("Found multiple \"p\" modifiers.")
+          foundPy = true
+        }
         case _ => return err("Invalid modifier \"" + part.name + "\"")
       }
-    success(Ext(foundJava, foundCpp, foundObjc))
+    success(Ext(foundJava, foundCpp, foundObjc, foundPy))
   }
 
   def typeDef: Parser[TypeDef] = record | enum | interface

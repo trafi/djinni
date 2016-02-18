@@ -178,7 +178,7 @@ class ObjcGenerator(spec: Spec) extends Generator(spec) {
     val self = marshal.typename(objcName, r)
 
     refs.header.add("#import <Foundation/Foundation.h>")
-    refs.body.add("!#import " + q(spec.objcIncludePrefix + (if (r.ext.objc) "../" else "") + marshal.headerName(ident)))
+    refs.body.add("!#import " + q((if (r.ext.objc) spec.objcExtendedRecordIncludePrefix else spec.objcIncludePrefix) + marshal.headerName(ident)))
 
     if (r.ext.objc) {
       refs.header.add(s"@class $noBaseSelf;")
@@ -187,6 +187,9 @@ class ObjcGenerator(spec: Spec) extends Generator(spec) {
     def checkMutable(tm: MExpr): Boolean = tm.base match {
       case MOptional => checkMutable(tm.args.head)
       case MString => true
+      case MList => true
+      case MSet => true
+      case MMap => true
       case MBinary => true
       case _ => false
     }

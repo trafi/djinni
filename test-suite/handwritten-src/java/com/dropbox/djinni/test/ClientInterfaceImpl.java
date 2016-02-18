@@ -1,5 +1,7 @@
 package com.dropbox.djinni.test;
 
+import javax.annotation.CheckForNull;
+
 public class ClientInterfaceImpl extends ClientInterface {
     @Override
     public ClientReturnedRecord getRecord(long id, String utf8string, String misc) {
@@ -8,13 +10,23 @@ public class ClientInterfaceImpl extends ClientInterface {
         }
         return new ClientReturnedRecord(id, utf8string, misc);
     }
-	@Override
-	public double identifierCheck(byte[] data, int r, long jret)
-	{
-		return 0.0;
-	}
+    @Override
+    public double identifierCheck(byte[] data, int r, long jret)
+    {
+        return 0.0;
+    }
     @Override
     public String returnStr() {
         return "test";
+    }
+
+    @Override
+    public String methTakingInterface(@CheckForNull ClientInterface i) {
+        if (i != null) { return i.returnStr(); } else { return ""; }
+    }
+
+    @Override
+    public String methTakingOptionalInterface(@CheckForNull ClientInterface i) {
+        if (i != null) { return i.returnStr(); } else { return ""; }
     }
 }

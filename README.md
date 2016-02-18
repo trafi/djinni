@@ -1,7 +1,6 @@
 # Djinni
 
-Djinni is a tool for generating cross-language type declarations and interface bindings. It's
-designed to connect C++ with either Java or Objective-C. Python support is available in an experimental version on the `python` branch.
+Djinni is a tool for generating cross-language type declarations and interface bindings. It's designed to connect C++ with Java, Objective-C, or Python.  Python support is experimental.  For more information see `README.Python.md`.
 
 We at Dropbox use Djinni to interface cross-platform C++ library code with platform-specific
 Java and Objective-C on Android and iOS.
@@ -412,6 +411,7 @@ Run `make test` to invoke the test suite, found in the test-suite subdirectory. 
 * There are a set of [tutorials](http://mobilecpptutorials.com/) for building a cross-platform app using Djinni.
 * [mx3](https://github.com/libmx3/mx3) is an example project demonstrating use of Djinni and other tools.
 * [Slides](https://bit.ly/djinnitalk) and [video](https://bit.ly/djinnivideo) from the CppCon 2014 talk where we introduced Djinni.
+* [Slides](https://bit.ly/djinnitalk2) and [video](https://bit.ly/djinnivideo2) from the CppCon 2015 about Djinni implementatino techniques, and the addition of Python.
 * You can see a [CppCon 2014 talk](https://www.youtube.com/watch?v=5AZMEm3rZ2Y) by app developers at Dropbox about their cross-platform experiences.
 
 
@@ -425,4 +425,5 @@ Run `make test` to invoke the test suite, found in the test-suite subdirectory. 
 - Andrew Twyman
 
 ## Contacts
-Jacob Potter - `j4cbo@dropbox.com`
+- Jacob Potter - `djinni@j4cbo.com`
+- Andrew Twyman - `atwyman@dropbox.com`

@@ -27,6 +27,7 @@ object Main {
     var cppOutFolder: Option[File] = None
     var cppNamespace: String = ""
     var cppIncludePrefix: String = ""
+    var cppExtendedRecordIncludePrefix: String = ""
     var cppFileIdentStyle: IdentConverter = IdentStyle.underLower
     var cppOptionalTemplate: String = "std::optional"
     var cppOptionalHeader: String = "<optional>"
@@ -62,6 +63,7 @@ object Main {
     var objcIdentStyle = IdentStyle.objcDefault
     var objcTypePrefix: String = ""
     var objcIncludePrefix: String = ""
+    var objcExtendedRecordIncludePrefix: String = ""
     var objcppIncludePrefix: String = ""
     var objcppIncludeCppPrefix: String = ""
     var objcppIncludeObjcPrefixOptional: Option[String] = None
@@ -74,6 +76,13 @@ object Main {
     var yamlOutFolder: Option[File] = None
     var yamlOutFile: Option[String] = None
     var yamlPrefix: String = ""
+    var pyOutFolder: Option[File] = None
+    var pyPackageName: String = ""
+    var pyIdentStyle = IdentStyle.pythonDefault
+    var cWrapperOutFolder: Option[File] = None
+    var pycffiPackageName: String = ""
+    var pycffiDynamicLibList: String = ""
+    var pycffiOutFolder: Option[File] = None
 
     val argParser = new scopt.OptionParser[Unit]("djinni") {
 
@@ -161,6 +170,10 @@ object Main {
         .text("The prefix for #include of the main C++ header files from Objective-C++ files.")
       opt[String]("objcpp-include-objc-prefix").valueName("<prefix>").foreach(x => objcppIncludeObjcPrefixOptional = Some(x))
         .text("The prefix for #import of the Objective-C header files from Objective-C++ files (default: the same as --objcpp-include-prefix)")
+      opt[String]("cpp-extended-record-include-prefix").valueName("<prefix>").foreach(cppExtendedRecordIncludePrefix = _)
+        .text("The prefix path for #include of the extended record C++ header (.hpp) files")
+      opt[String]("objc-extended-record-include-prefix").valueName("<prefix>").foreach(objcExtendedRecordIncludePrefix = _)
+        .text("The prefix path for #import of the extended record Objective-C header (.h) files")
       opt[String]("objcpp-namespace").valueName("<prefix>").foreach(objcppNamespace = _)
         .text("The namespace name to use for generated Objective-C++ classes.")
       opt[String]("objc-base-lib-include-prefix").valueName("...").foreach(x => objcBaseLibIncludePrefix = x)
@@ -179,6 +192,16 @@ object Main {
         .text("Optional file in which to write the list of output files produced.")
       opt[Boolean]("skip-generation").valueName("<true/false>").foreach(x => skipGeneration = x)
         .text("Way of specifying if file generation should be skipped (default: false)")
+      opt[File]("py-out").valueName("<out-folder>").foreach(x => pyOutFolder = Some(x))
+        .text("The output folder for Python files (Generator disabled if unspecified).")
+      opt[File]("pycffi-out").valueName("<out-folder>").foreach(x => pycffiOutFolder = Some(x))
+        .text("The output folder for PyCFFI files (Generator disabled if unspecified).")
+      opt[String]("pycffi-package-name").valueName("...").foreach(x => pycffiPackageName= x)
+        .text("The package name to use for the generated PyCFFI classes.")
+      opt[String]("pycffi-dynamic-lib-list").valueName("...").foreach(x => pycffiDynamicLibList= x)
+        .text("The names of the dynamic libraries to be linked with PyCFFI.")
+      opt[File]("c-wrapper-out").valueName("<out-folder>").foreach(x => cWrapperOutFolder = Some(x))
+        .text("The output folder for Wrapper C files (Generator disabled if unspecified).")
 
       note("\nIdentifier styles (ex: \"FooBar\", \"fooBar\", \"foo_bar\", \"FOO_BAR\", \"m_fooBar\")\n")
       identStyle("ident-java-enum",      c => { javaIdentStyle = javaIdentStyle.copy(enum = c) })
@@ -244,6 +267,7 @@ object Main {
         inFileListWriter.get.close()
       }
     }
+    val idlFileName = idlFile.getName
 
     // Resolve names in IDL file, check types.
     System.out.println("Resolving...")
@@ -273,6 +297,7 @@ object Main {
       cppOutFolder,
       cppHeaderOutFolder,
       cppIncludePrefix,
+      cppExtendedRecordIncludePrefix,
       cppNamespace,
       cppIdentStyle,
       cppFileIdentStyle,
@@ -299,6 +324,7 @@ object Main {
       objcppExt,
       objcHeaderExt,
       objcIncludePrefix,
+      objcExtendedRecordIncludePrefix,
       objcppIncludePrefix,
       objcppIncludeCppPrefix,
       objcppIncludeObjcPrefix,
@@ -308,8 +334,15 @@ object Main {
       skipGeneration,
       yamlOutFolder,
       yamlOutFile,
-      yamlPrefix)
-
+      yamlPrefix,
+      pyOutFolder,
+      pyPackageName,
+      pyIdentStyle,
+      pycffiOutFolder,
+      pycffiPackageName,
+      pycffiDynamicLibList,
+      idlFileName,
+      cWrapperOutFolder)
 
     try {
       val r = generate(idl, outSpec)
