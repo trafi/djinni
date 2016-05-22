@@ -28,11 +28,11 @@ LOCAL_SRC_FILES := \
 
 # Flags passed to both C and C++ files.
 MY_CFLAGS_Debug := \
-	-fvisibility=hidden \
 	-g \
 	-O0
 
 MY_DEFS_Debug := \
+	'-D_GLIBCXX_HAS_GTHREADS' \
 	'-DDEBUG'
 
 
@@ -43,7 +43,6 @@ LOCAL_C_INCLUDES_Debug := \
 
 # Flags passed to only C++ (and not C) files.
 LOCAL_CPPFLAGS_Debug := \
-	-fvisibility=hidden \
 	-std=c++1y \
 	-fexceptions \
 	-frtti
@@ -51,13 +50,13 @@ LOCAL_CPPFLAGS_Debug := \
 
 # Flags passed to both C and C++ files.
 MY_CFLAGS_Release := \
-	-fvisibility=hidden \
 	-Os \
 	-fomit-frame-pointer \
 	-fdata-sections \
 	-ffunction-sections
 
 MY_DEFS_Release := \
+	'-D_GLIBCXX_HAS_GTHREADS' \
 	'-DNDEBUG'
 
 
@@ -68,7 +67,6 @@ LOCAL_C_INCLUDES_Release := \
 
 # Flags passed to only C++ (and not C) files.
 LOCAL_CPPFLAGS_Release := \
-	-fvisibility=hidden \
 	-std=c++1y \
 	-fexceptions \
 	-frtti
