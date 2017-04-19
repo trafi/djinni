@@ -34,9 +34,7 @@ class ObjcppMarshal(spec: Spec) extends Marshal(spec) {
     case o: MOpaque =>
       List(ImportRef(q(spec.objcBaseLibIncludePrefix + "DJIMarshal+Private.h")))
     case d: MDef => d.defType match {
-      case DEnum =>
-        List(ImportRef(q(spec.objcBaseLibIncludePrefix + "DJIMarshal+Private.h")))
-      case DInterface =>
+      case DEnum | DInterface =>
         List(ImportRef(include(m)))
       case DRecord =>
         val r = d.body.asInstanceOf[Record]
@@ -48,15 +46,14 @@ class ObjcppMarshal(spec: Spec) extends Marshal(spec) {
   }
 
   def include(m: Meta) = m match {
-    case d: MDef => d.defType match {
-      case DEnum => q(spec.objcBaseLibIncludePrefix + "DJIMarshal+Private.h")
-      case _ => q(spec.objcppIncludePrefix + privateHeaderName(d.name))
-    }
+    case d: MDef => q(spec.objcppIncludePrefix + privateHeaderName(d.name))
     case _ => throw new AssertionError("not applicable")
   }
 
   def helperClass(name: String) = idCpp.ty(name)
   private def helperClass(tm: MExpr): String = helperName(tm) + helperTemplates(tm)
+
+  def helperClassWithNs(name: String) = withNs(Some(spec.objcppNamespace), helperClass(name))
 
   def privateHeaderName(ident: String): String = idObjc.ty(ident) + "+Private." + spec.objcHeaderExt
 
@@ -79,7 +76,7 @@ class ObjcppMarshal(spec: Spec) extends Marshal(spec) {
       case MOptional => "Optional"
       case MBinary => "Binary"
       case MDate => "Date"
-      case MString => "String"
+      case MString => if (spec.cppUseWideStrings) "WString" else "String"
       case MList => "List"
       case MSet => "Set"
       case MMap => "Map"

@@ -3,7 +3,6 @@
 
 #include "NativeReverseClientInterface.hpp"  // my header
 #include "Marshal.hpp"
-#include "NativeReverseClientInterface.hpp"
 
 namespace djinni_generated {
 
@@ -16,7 +15,7 @@ CJNIEXPORT void JNICALL Java_com_dropbox_djinni_test_ReverseClientInterface_0002
 {
     try {
         DJINNI_FUNCTION_PROLOGUE1(jniEnv, nativeRef);
-        delete reinterpret_cast<djinni::CppProxyHandle<::testsuite::ReverseClientInterface>*>(nativeRef);
+        delete reinterpret_cast<::djinni::CppProxyHandle<::testsuite::ReverseClientInterface>*>(nativeRef);
     } JNI_TRANSLATE_EXCEPTIONS_RETURN(jniEnv, )
 }
 

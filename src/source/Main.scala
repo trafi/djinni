@@ -16,7 +16,7 @@
 
 package djinni
 
-import java.io.{IOException, FileInputStream, InputStreamReader, File, BufferedWriter, FileWriter}
+import java.io.{IOException, FileNotFoundException, FileInputStream, InputStreamReader, File, BufferedWriter, FileWriter}
 
 import djinni.generatorTools._
 
@@ -24,6 +24,7 @@ object Main {
 
   def main(args: Array[String]) {
     var idlFile: File = null
+    var idlIncludePaths: List[String] = List("")
     var cppOutFolder: Option[File] = None
     var cppNamespace: String = ""
     var cppIncludePrefix: String = ""
@@ -35,12 +36,15 @@ object Main {
     var cppNnHeader: Option[String] = None
     var cppNnType: Option[String] = None
     var cppNnCheckExpression: Option[String] = None
+    var cppUseWideStrings: Boolean = false
     var javaOutFolder: Option[File] = None
     var javaPackage: Option[String] = None
+    var javaClassAccessModifier: JavaAccessModifier.Value = JavaAccessModifier.Public
     var javaCppException: Option[String] = None
     var javaAnnotation: Option[String] = None
     var javaNullableAnnotation: Option[String] = None
     var javaNonnullAnnotation: Option[String] = None
+    var javaUseFinalForRecord: Boolean = true
     var jniOutFolder: Option[File] = None
     var jniHeaderOutFolderOptional: Option[File] = None
     var jniNamespace: String = "djinni_generated"
@@ -64,6 +68,7 @@ object Main {
     var objcTypePrefix: String = ""
     var objcIncludePrefix: String = ""
     var objcExtendedRecordIncludePrefix: String = ""
+    var objcSwiftBridgingHeader: Option[String] = None
     var objcppIncludePrefix: String = ""
     var objcppIncludeCppPrefix: String = ""
     var objcppIncludeObjcPrefixOptional: Option[String] = None
@@ -99,11 +104,15 @@ object Main {
       help("help")
       opt[File]("idl").valueName("<in-file>").required().foreach(idlFile = _)
         .text("The IDL file with the type definitions, typically with extension \".djinni\".")
+      opt[String]("idl-include-path").valueName("<path> ...").optional().unbounded().foreach(x => idlIncludePaths = idlIncludePaths :+ x)
+        .text("An include path to search for Djinni @import directives. Can specify multiple paths.")
       note("")
       opt[File]("java-out").valueName("<out-folder>").foreach(x => javaOutFolder = Some(x))
         .text("The output for the Java files (Generator disabled if unspecified).")
       opt[String]("java-package").valueName("...").foreach(x => javaPackage = Some(x))
         .text("The package name to use for generated Java classes.")
+      opt[JavaAccessModifier.Value]("java-class-access-modifier").valueName("<public/package>").foreach(x => javaClassAccessModifier = x)
+        .text("The access modifier to use for generated Java classes (default: public).")
       opt[String]("java-cpp-exception").valueName("<exception-class>").foreach(x => javaCppException = Some(x))
         .text("The type for translated C++ exceptions in Java (default: java.lang.RuntimeException that is not checked)")
       opt[String]("java-annotation").valueName("<annotation-class>").foreach(x => javaAnnotation = Some(x))
@@ -112,6 +121,8 @@ object Main {
         .text("Java annotation (@Nullable) to place on all fields and return values that are optional")
       opt[String]("java-nonnull-annotation").valueName("<nonnull-annotation-class>").foreach(x => javaNonnullAnnotation = Some(x))
         .text("Java annotation (@Nonnull) to place on all fields and return values that are not optional")
+      opt[Boolean]("java-use-final-for-record").valueName("<use-final-for-record>").foreach(x => javaUseFinalForRecord = x)
+        .text("Whether generated Java classes for records should be marked 'final' (default: true). ")
       note("")
       opt[File]("cpp-out").valueName("<out-folder>").foreach(x => cppOutFolder = Some(x))
         .text("The output folder for C++ files (Generator disabled if unspecified).")
@@ -137,6 +148,8 @@ object Main {
         .text("The type to use for non-nullable pointers (as a substitute for std::shared_ptr)")
       opt[String]("cpp-nn-check-expression").valueName("<header>").foreach(x => cppNnCheckExpression = Some(x))
         .text("The expression to use for building non-nullable pointers")
+      opt[Boolean]( "cpp-use-wide-strings").valueName("<true/false>").foreach(x => cppUseWideStrings = x)
+        .text("Use wide strings in C++ code (default: false)")
       note("")
       opt[File]("jni-out").valueName("<out-folder>").foreach(x => jniOutFolder = Some(x))
         .text("The folder for the JNI C++ output files (Generator disabled if unspecified).")
@@ -159,6 +172,8 @@ object Main {
         .text("The prefix for Objective-C data types (usually two or three letters)")
       opt[String]("objc-include-prefix").valueName("<prefix>").foreach(objcIncludePrefix = _)
         .text("The prefix for #import of header files from Objective-C files.")
+      opt[String]("objc-swift-bridging-header").valueName("<name>").foreach(x => objcSwiftBridgingHeader = Some(x))
+        .text("The name of Objective-C Bridging Header used in XCode's Swift projects.")
       note("")
       opt[File]("objcpp-out").valueName("<out-folder>").foreach(x => objcppOutFolder = Some(x))
         .text("The output folder for private Objective-C++ files (Generator disabled if unspecified).")
@@ -206,6 +221,7 @@ object Main {
       note("\nIdentifier styles (ex: \"FooBar\", \"fooBar\", \"foo_bar\", \"FOO_BAR\", \"m_fooBar\")\n")
       identStyle("ident-java-enum",      c => { javaIdentStyle = javaIdentStyle.copy(enum = c) })
       identStyle("ident-java-field",     c => { javaIdentStyle = javaIdentStyle.copy(field = c) })
+      identStyle("ident-java-type",      c => { javaIdentStyle = javaIdentStyle.copy(ty = c) })
       identStyle("ident-cpp-enum",       c => { cppIdentStyle = cppIdentStyle.copy(enum = c) })
       identStyle("ident-cpp-field",      c => { cppIdentStyle = cppIdentStyle.copy(field = c) })
       identStyle("ident-cpp-method",     c => { cppIdentStyle = cppIdentStyle.copy(method = c) })
@@ -214,8 +230,8 @@ object Main {
       identStyle("ident-cpp-type-param", c => { cppIdentStyle = cppIdentStyle.copy(typeParam = c) })
       identStyle("ident-cpp-local",      c => { cppIdentStyle = cppIdentStyle.copy(local = c) })
       identStyle("ident-cpp-file",       c => { cppFileIdentStyle = c })
-      identStyle("ident-jni-class",           c => {jniClassIdentStyleOptional = Some(c)})
-      identStyle("ident-jni-file",            c => {jniFileIdentStyleOptional = Some(c)})
+      identStyle("ident-jni-class",      c => { jniClassIdentStyleOptional = Some(c)})
+      identStyle("ident-jni-file",       c => { jniFileIdentStyleOptional = Some(c)})
       identStyle("ident-objc-enum",       c => { objcIdentStyle = objcIdentStyle.copy(enum = c) })
       identStyle("ident-objc-field",      c => { objcIdentStyle = objcIdentStyle.copy(field = c) })
       identStyle("ident-objc-method",     c => { objcIdentStyle = objcIdentStyle.copy(method = c) })
@@ -249,16 +265,17 @@ object Main {
     // Parse IDL file.
     System.out.println("Parsing...")
     val inFileListWriter = if (inFileListPath.isDefined) {
-      createFolder("input file list", inFileListPath.get.getParentFile)
+      if (inFileListPath.get.getParentFile != null)
+        createFolder("input file list", inFileListPath.get.getParentFile)
       Some(new BufferedWriter(new FileWriter(inFileListPath.get)))
     } else {
       None
     }
     val idl = try {
-      (new Parser).parseFile(idlFile, inFileListWriter)
+      (new Parser(idlIncludePaths)).parseFile(idlFile, inFileListWriter)
     }
     catch {
-      case ex: IOException =>
+      case ex @ (_: FileNotFoundException | _: IOException) =>
         System.err.println("Error reading from --idl file: " + ex.getMessage)
         System.exit(1); return
     }
@@ -280,8 +297,17 @@ object Main {
 
     System.out.println("Generating...")
     val outFileListWriter = if (outFileListPath.isDefined) {
-      createFolder("output file list", outFileListPath.get.getParentFile)
+      if (outFileListPath.get.getParentFile != null)
+        createFolder("output file list", outFileListPath.get.getParentFile)
       Some(new BufferedWriter(new FileWriter(outFileListPath.get)))
+    } else {
+      None
+    }
+    val objcSwiftBridgingHeaderWriter = if (objcSwiftBridgingHeader.isDefined && objcOutFolder.isDefined) {
+      val objcSwiftBridgingHeaderFile = new File(objcOutFolder.get.getPath, objcSwiftBridgingHeader.get + ".h")
+      if (objcSwiftBridgingHeaderFile.getParentFile != null)
+        createFolder("output file list", objcSwiftBridgingHeaderFile.getParentFile)
+      Some(new BufferedWriter(new FileWriter(objcSwiftBridgingHeaderFile)))
     } else {
       None
     }
@@ -289,11 +315,13 @@ object Main {
     val outSpec = Spec(
       javaOutFolder,
       javaPackage,
+      javaClassAccessModifier,
       javaIdentStyle,
       javaCppException,
       javaAnnotation,
       javaNullableAnnotation,
       javaNonnullAnnotation,
+      javaUseFinalForRecord,
       cppOutFolder,
       cppHeaderOutFolder,
       cppIncludePrefix,
@@ -307,6 +335,7 @@ object Main {
       cppNnHeader,
       cppNnType,
       cppNnCheckExpression,
+      cppUseWideStrings,
       jniOutFolder,
       jniHeaderOutFolder,
       jniIncludePrefix,
@@ -330,6 +359,7 @@ object Main {
       objcppIncludeObjcPrefix,
       objcppNamespace,
       objcBaseLibIncludePrefix,
+      objcSwiftBridgingHeaderWriter,
       outFileListWriter,
       skipGeneration,
       yamlOutFolder,
@@ -351,6 +381,9 @@ object Main {
     finally {
       if (outFileListWriter.isDefined) {
         outFileListWriter.get.close()
+      }
+      if (objcSwiftBridgingHeaderWriter.isDefined) {
+        objcSwiftBridgingHeaderWriter.get.close()
       }
     }
   }

@@ -9,7 +9,6 @@ namespace testsuite {
 
 class JavaOnlyListener;
 class ObjcOnlyListener;
-class PyOnlyListener;
 
 /**
  * Generating and compiling this makes sure other languages don't break
@@ -21,9 +20,11 @@ public:
 
     virtual void callForObjC(const std::shared_ptr<ObjcOnlyListener> & l) = 0;
 
+    virtual std::shared_ptr<ObjcOnlyListener> returnForObjC() = 0;
+
     virtual void callForJava(const std::shared_ptr<JavaOnlyListener> & l) = 0;
 
-    virtual void callForPy(const std::shared_ptr<PyOnlyListener> & l) = 0;
+    virtual std::shared_ptr<JavaOnlyListener> returnForJava() = 0;
 };
 
 }  // namespace testsuite

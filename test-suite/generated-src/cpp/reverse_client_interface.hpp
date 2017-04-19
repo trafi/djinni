@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <experimental/optional>
+#include "../../handwritten-src/cpp/optional.hpp"
 #include <memory>
 #include <string>
 
@@ -13,7 +13,7 @@ class ReverseClientInterface {
 public:
     virtual ~ReverseClientInterface() {}
 
-    virtual std::string return_str() = 0;
+    virtual std::string return_str() const = 0;
 
     virtual std::string meth_taking_interface(const std::shared_ptr<ReverseClientInterface> & i) = 0;
 

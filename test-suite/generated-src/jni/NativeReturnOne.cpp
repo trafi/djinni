@@ -3,7 +3,6 @@
 
 #include "NativeReturnOne.hpp"  // my header
 #include "Marshal.hpp"
-#include "NativeReturnOne.hpp"
 
 namespace djinni_generated {
 
@@ -16,7 +15,7 @@ CJNIEXPORT void JNICALL Java_com_dropbox_djinni_test_ReturnOne_00024CppProxy_nat
 {
     try {
         DJINNI_FUNCTION_PROLOGUE1(jniEnv, nativeRef);
-        delete reinterpret_cast<djinni::CppProxyHandle<::testsuite::ReturnOne>*>(nativeRef);
+        delete reinterpret_cast<::djinni::CppProxyHandle<::testsuite::ReturnOne>*>(nativeRef);
     } JNI_TRANSLATE_EXCEPTIONS_RETURN(jniEnv, )
 }
 

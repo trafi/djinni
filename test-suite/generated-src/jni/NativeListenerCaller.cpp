@@ -3,7 +3,6 @@
 
 #include "NativeListenerCaller.hpp"  // my header
 #include "NativeFirstListener.hpp"
-#include "NativeListenerCaller.hpp"
 #include "NativeSecondListener.hpp"
 
 namespace djinni_generated {
@@ -17,7 +16,7 @@ CJNIEXPORT void JNICALL Java_com_dropbox_djinni_test_ListenerCaller_00024CppProx
 {
     try {
         DJINNI_FUNCTION_PROLOGUE1(jniEnv, nativeRef);
-        delete reinterpret_cast<djinni::CppProxyHandle<::testsuite::ListenerCaller>*>(nativeRef);
+        delete reinterpret_cast<::djinni::CppProxyHandle<::testsuite::ListenerCaller>*>(nativeRef);
     } JNI_TRANSLATE_EXCEPTIONS_RETURN(jniEnv, )
 }
 

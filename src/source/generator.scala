@@ -30,11 +30,13 @@ package object generatorTools {
   case class Spec(
                    javaOutFolder: Option[File],
                    javaPackage: Option[String],
+                   javaClassAccessModifier: JavaAccessModifier.Value,
                    javaIdentStyle: JavaIdentStyle,
                    javaCppException: Option[String],
                    javaAnnotation: Option[String],
                    javaNullableAnnotation: Option[String],
                    javaNonnullAnnotation: Option[String],
+                   javaUseFinalForRecord: Boolean,
                    cppOutFolder: Option[File],
                    cppHeaderOutFolder: Option[File],
                    cppIncludePrefix: String,
@@ -48,6 +50,7 @@ package object generatorTools {
                    cppNnHeader: Option[String],
                    cppNnType: Option[String],
                    cppNnCheckExpression: Option[String],
+                   cppUseWideStrings: Boolean,
                    jniOutFolder: Option[File],
                    jniHeaderOutFolder: Option[File],
                    jniIncludePrefix: String,
@@ -71,27 +74,18 @@ package object generatorTools {
                    objcppIncludeObjcPrefix: String,
                    objcppNamespace: String,
                    objcBaseLibIncludePrefix: String,
+                   objcSwiftBridgingHeaderWriter: Option[Writer],
                    outFileListWriter: Option[Writer],
                    skipGeneration: Boolean,
                    yamlOutFolder: Option[File],
                    yamlOutFile: Option[String],
-                   yamlPrefix: String,
-                   pyOutFolder: Option[File],
-                   pyPackageName: String,
-                   pyIdentStyle: PythonIdentStyle,
-                   pycffiOutFolder: Option[File],
-                   pycffiPackageName: String,
-                   pycffiDynamicLibList: String,
-                   idlFileName: String,
-                   cWrapperOutFolder: Option[File])
+                   yamlPrefix: String)
 
   def preComma(s: String) = {
     if (s.isEmpty) s else ", " + s
   }
-  def p(s: String) = "(" + s + ")"
   def q(s: String) = '"' + s + '"'
-  def t(s: String) = "<" + s + ">"
-  def firstUpper(token: String) = token.charAt(0).toUpper + token.substring(1)
+  def firstUpper(token: String) = if (token.isEmpty()) token else token.charAt(0).toUpper + token.substring(1)
 
   type IdentConverter = String => String
 
@@ -107,9 +101,6 @@ package object generatorTools {
                             method: IdentConverter, field: IdentConverter, local: IdentConverter,
                             enum: IdentConverter, const: IdentConverter)
 
-  case class PythonIdentStyle(ty: IdentConverter, className: IdentConverter, typeParam: IdentConverter,
-                            method: IdentConverter, field: IdentConverter, local: IdentConverter,
-                            enum: IdentConverter, const: IdentConverter)
   object IdentStyle {
     val camelUpper = (s: String) => s.split('_').map(firstUpper).mkString
     val camelLower = (s: String) => {
@@ -124,7 +115,6 @@ package object generatorTools {
     val javaDefault = JavaIdentStyle(camelUpper, camelUpper, camelLower, camelLower, camelLower, underCaps, underCaps)
     val cppDefault = CppIdentStyle(camelUpper, camelUpper, camelUpper, underLower, underLower, underLower, underCaps, underCaps)
     val objcDefault = ObjcIdentStyle(camelUpper, camelUpper, camelLower, camelLower, camelLower, camelUpper, camelUpper)
-    val pythonDefault = PythonIdentStyle(underLower, camelUpper, underLower, underLower, underLower, underLower, underUpper, underCaps)
 
     val styles = Map(
       "FooBar" -> camelUpper,
@@ -149,6 +139,20 @@ package object generatorTools {
       None
     }
   }
+
+  object JavaAccessModifier extends Enumeration {
+    val Public = Value("public")
+    val Package = Value("package")
+
+    def getCodeGenerationString(javaAccessModifier: JavaAccessModifier.Value): String = {
+      javaAccessModifier match {
+        case Public => "public "
+        case Package => "/*package*/ "
+      }
+    }
+
+  }
+  implicit val javaAccessModifierReads: scopt.Read[JavaAccessModifier.Value] = scopt.Read.reads(JavaAccessModifier withName _)
 
   final case class SkipFirst() {
     private var first = true
@@ -175,8 +179,6 @@ package object generatorTools {
       throw new GenerateException(s"Unable to create $name folder at ${q(folder.getPath)}.")
     }
   }
-
-  def DEBUG(s: String) = System.out.println(s)
 
   def generate(idl: Seq[TypeDecl], spec: Spec): Option[String] = {
     try {
@@ -212,32 +214,15 @@ package object generatorTools {
         }
         new ObjcppGenerator(spec).generate(idl)
       }
+      if (spec.objcSwiftBridgingHeaderWriter.isDefined) {
+        SwiftBridgingHeaderGenerator.writeAutogenerationWarning(spec.objcSwiftBridgingHeaderWriter.get)
+        new SwiftBridgingHeaderGenerator(spec).generate(idl)
+      }
       if (spec.yamlOutFolder.isDefined) {
         if (!spec.skipGeneration) {
           createFolder("YAML", spec.yamlOutFolder.get)
         }
         new YamlGenerator(spec).generate(idl)
-      }
-      if (spec.pyOutFolder.isDefined) {
-        DEBUG(spec.pyOutFolder.get.toString)
-        if (!spec.skipGeneration) {
-          createFolder("Python", spec.pyOutFolder.get)
-        }
-        new PythonGenerator(spec).generate(idl)
-      }
-      if (spec.cWrapperOutFolder.isDefined) {
-        DEBUG(spec.cWrapperOutFolder.get.toString)
-        if (!spec.skipGeneration) {
-          createFolder("C", spec.cWrapperOutFolder.get)
-        }
-        new CWrapperGenerator(spec).generate(idl)
-      }
-      if (spec.pycffiOutFolder.isDefined) {
-        DEBUG(spec.pycffiOutFolder.get.toString)
-        if (!spec.skipGeneration) {
-          createFolder("Cffi", spec.pycffiOutFolder.get)
-        }
-        new CffiGenerator(spec).generate(idl)
       }
       None
     }
@@ -286,53 +271,12 @@ abstract class Generator(spec: Spec)
     }
   }
 
-  protected def appendToFile(folder: File, fileName: String, f: IndentWriter => Unit): Unit = {
-    val file = new File(folder, fileName)
-
-    val fout = new FileOutputStream(file, true)
-    try {
-      val out = new OutputStreamWriter(fout, "UTF-8")
-      f(new IndentWriter(out))
-      out.flush()
-    }
-    finally {
-      fout.close()
-    }
-  }
-
-  protected def createFileOnce(folder: File, fileName: String, f: IndentWriter => Unit) {
-    val file = new File(folder, fileName)
-    val cp = file.getCanonicalPath
-    writtenFiles.put(cp.toLowerCase, cp) match {
-      case Some(existing) => return
-      case _ =>
-    }
-
-    if (spec.outFileListWriter.isDefined) {
-      spec.outFileListWriter.get.write(new File(folder, fileName).getPath + "\n")
-    }
-    if (spec.skipGeneration) {
-      return
-    }
-
-    val fout = new FileOutputStream(file)
-    try {
-      val out = new OutputStreamWriter(fout, "UTF-8")
-      f(new IndentWriter(out))
-      out.flush()
-    }
-    finally {
-      fout.close()
-    }
-  }
-
   protected def createFile(folder: File, fileName: String, f: IndentWriter => Unit): Unit = createFile(folder, fileName, out => new IndentWriter(out), f)
 
   implicit def identToString(ident: Ident): String = ident.name
   val idCpp = spec.cppIdentStyle
   val idJava = spec.javaIdentStyle
   val idObjc = spec.objcIdentStyle
-  val idPython = spec.pyIdentStyle
 
   def wrapNamespace(w: IndentWriter, ns: String, f: IndentWriter => Unit) {
     ns match {
@@ -385,7 +329,9 @@ abstract class Generator(spec: Spec)
       w.wl
       val myHeader = q(includePrefix + fileIdentStyle(name) + "." + spec.cppHeaderExt)
       w.wl(s"#include $myHeader  // my header")
-      includes.foreach(w.wl(_))
+      val myHeaderInclude = s"#include $myHeader"
+      for (include <- includes if include != myHeaderInclude)
+        w.wl(include)
       w.wl
       wrapNamespace(w, namespace, f)
     })
